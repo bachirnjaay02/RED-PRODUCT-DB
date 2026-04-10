@@ -55,4 +55,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Commande de démarrage
 CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --force && php artisan storage:link || true && apache2-foreground"]
 
-RUN a2dismod mpm_event && a2enmod mpm_prefork
+RUN a2dismod mpm_event && a2enmod mpm_prefork 
