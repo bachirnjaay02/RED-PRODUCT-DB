@@ -11,9 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Ajouter le middleware CORS pour gérer les requêtes cross-origin
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->use([
+            \Illuminate\Http\Middleware\HandleCors::class,  
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        
     })->create();
+
+
