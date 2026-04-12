@@ -4,6 +4,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HotelController;
 use Illuminate\Support\Facades\Route;
 
+// Ajoute cette ligne en haut, avant toutes les autres routes
+Route::options('{any}', function() {
+    return response()->json([], 200);
+})->where('any', '.*');
+
 Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
