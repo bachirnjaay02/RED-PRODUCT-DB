@@ -41,7 +41,7 @@ class HotelController extends Controller
             'phone' => 'required|string',
             'price' => 'required|numeric',
             'currency' => 'nullable|string',
-            'image' => 'nullable|image|max:5120', // max 5Mo
+            'image' => 'required|string', // image sous forme de base64 ou URL, à adapter selon ton frontend
         ]);
 
         if ($request->hasFile('image')) {
