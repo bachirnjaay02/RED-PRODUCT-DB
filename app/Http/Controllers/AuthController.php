@@ -18,45 +18,73 @@ class AuthController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
+        ], [
+            'name.required'     => 'Le nom est obligatoire.',
+            'email.required'    => 'L\'email est obligatoire.',
+            'email.email'       => 'L\'email n\'est pas valide.',
+            'email.unique'      => 'Cet email est déjà utilisé.',
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.min'      => 'Le mot de passe doit contenir au moins 6 caractères.',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $token = Str::random(64);
+        // ✅ Générer un code à 6 chiffres
+        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         $user = User::create([
             'name'             => $request->name,
             'email'            => $request->email,
             'password'         => Hash::make($request->password),
-            'activation_token' => $token,
+            'activation_token' => $code,
             'is_active'        => false,
         ]);
 
-        $activationUrl = "https://red-product-front-mzvk.vercel.app/activate/" . $token;
-
         try {
             Mail::send('emails.activation', [
-                'url'  => $activationUrl,
+                'code' => $code,
                 'name' => $user->name
             ], function ($message) use ($user) {
                 $message->to($user->email);
-                $message->subject('Activation de votre compte - RED PRODUCT');
+                $message->subject('Votre code de validation - RED PRODUCT');
             });
         } catch (\Exception $e) {
-            // ✅ On ne bloque pas l'inscription si le mail échoue
-            // On retourne quand même un succès avec un avertissement
             return response()->json([
-                'message' => 'Inscription réussie ! L\'email d\'activation n\'a pas pu être envoyé. Contactez le support.',
-                'warning' => true,
-                'error_detail' => $e->getMessage() // ✅ Utile pour déboguer
+                'message'      => 'Inscription réussie mais email non envoyé. Contactez le support.',
+                'warning'      => true,
+                'error_detail' => $e->getMessage()
             ], 201);
         }
 
         return response()->json([
-            'message' => 'Inscription réussie ! Veuillez vérifier vos e-mails pour activer votre compte.'
+            'message' => 'Inscription réussie ! Entrez le code reçu par email pour activer votre compte.',
+            'email'   => $user->email
         ], 201);
+    }
+
+    // ✅ Nouvelle méthode — vérification du code
+    public function verifyCode(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'code'  => 'required|string|size:6',
+        ]);
+
+        $user = User::where('email', $request->email)
+                    ->where('activation_token', $request->code)
+                    ->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'Code invalide ou expiré.'], 400);
+        }
+
+        $user->is_active = true;
+        $user->activation_token = null;
+        $user->save();
+
+        return response()->json(['message' => 'Compte activé avec succès ! Vous pouvez maintenant vous connecter.']);
     }
 
     public function login(Request $request)
@@ -74,7 +102,9 @@ class AuthController extends Controller
 
         if (!$user->is_active) {
             return response()->json([
-                'message' => 'Votre compte n\'est pas encore activé. Veuillez vérifier vos e-mails.'
+                'message' => 'Votre compte n\'est pas encore activé. Vérifiez votre email.',
+                'email'   => $user->email,
+                'needs_activation' => true
             ], 403);
         }
 
@@ -88,21 +118,10 @@ class AuthController extends Controller
         ]);
     }
 
-    public function activate($token)
+    public function logout(Request $request)
     {
-        $user = User::where('activation_token', $token)->first();
-
-        if (!$user) {
-            return response()->json(['message' => 'Token d\'activation invalide ou expiré.'], 404);
-        }
-
-        $user->is_active = true;
-        $user->activation_token = null;
-        $user->save();
-
-        return response()->json([
-            'message' => 'Votre compte a été activé avec succès ! Vous pouvez maintenant vous connecter.'
-        ]);
+        $request->user()?->currentAccessToken()?->delete();
+        return response()->json(['message' => 'Déconnexion réussie.']);
     }
 
     public function sendResetLink(Request $request)
@@ -114,44 +133,51 @@ class AuthController extends Controller
             return response()->json(['message' => 'Email non trouvé.'], 404);
         }
 
-        $token = Str::random(64);
+        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
         DB::table('password_resets')->updateOrInsert(
             ['email' => $user->email],
-            ['token' => $token, 'created_at' => now()]
+            ['token' => $code, 'created_at' => now()]
         );
 
-        $url = "https://red-product-front-mzvk.vercel.app/reset-password/" . $token;
-
         try {
-            Mail::send('emails.reset', ['url' => $url], function ($m) use ($user) {
-                $m->to($user->email)->subject('Réinitialisation de mot de passe - RED PRODUCT');
+            Mail::send('emails.reset', [
+                'code' => $code,
+                'name' => $user->name
+            ], function ($m) use ($user) {
+                $m->to($user->email)->subject('Code de réinitialisation - RED PRODUCT');
             });
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Email non envoyé. Vérifiez la configuration mail.',
+                'message'      => 'Email non envoyé.',
                 'error_detail' => $e->getMessage()
             ], 500);
         }
 
-        return response()->json(['message' => 'Lien de réinitialisation envoyé par mail !']);
+        return response()->json(['message' => 'Code de réinitialisation envoyé par email !']);
     }
 
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'token'    => 'required',
+            'email'    => 'required|email',
+            'code'     => 'required|string|size:6',
             'password' => 'required|min:6'
         ]);
 
-        $record = DB::table('password_resets')->where('token', $request->token)->first();
+        $record = DB::table('password_resets')
+                    ->where('email', $request->email)
+                    ->where('token', $request->code)
+                    ->first();
+
         if (!$record) {
-            return response()->json(['message' => 'Token invalide.'], 400);
+            return response()->json(['message' => 'Code invalide ou expiré.'], 400);
         }
 
-        $user = User::where('email', $record->email)->first();
+        $user = User::where('email', $request->email)->first();
         $user->update(['password' => Hash::make($request->password)]);
 
-        DB::table('password_resets')->where('email', $record->email)->delete();
+        DB::table('password_resets')->where('email', $request->email)->delete();
 
         return response()->json(['message' => 'Mot de passe mis à jour avec succès !']);
     }

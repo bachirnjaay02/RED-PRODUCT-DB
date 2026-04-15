@@ -23,6 +23,7 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 Route::get('/hotels', [HotelController::class, 'index']);
 Route::post('/hotels', [HotelController::class, 'store']);
+Route::post('/verify-code', [AuthController::class, 'verifyCode']); // ✅ Nouveau endpoint pour vérifier le code d'activation
 
 // ✅ Route test mail
 Route::get('/test-mail', function () {

@@ -10,8 +10,8 @@
     .body { padding: 40px 30px; text-align: center; }
     .body h2 { color: #1a1a1a; margin-bottom: 10px; }
     .body p { color: #555; line-height: 1.6; }
-    .code-box { display: inline-block; margin: 25px auto; padding: 18px 40px; background: #f8f8f8; border: 2px dashed #1a1a1a; border-radius: 10px; }
-    .code { font-size: 42px; font-weight: bold; color: #1a1a1a; letter-spacing: 10px; }
+    .code-box { display: inline-block; margin: 25px auto; padding: 18px 40px; background: #fff3f3; border: 2px dashed #c0392b; border-radius: 10px; }
+    .code { font-size: 42px; font-weight: bold; color: #c0392b; letter-spacing: 10px; }
     .footer { background: #f4f4f4; padding: 20px; text-align: center; font-size: 12px; color: #999; }
   </style>
 </head>
@@ -21,13 +21,13 @@
       <h1>RED PRODUCT</h1>
     </div>
     <div class="body">
-      <h2>Bonjour {{ $name }} 👋</h2>
-      <p>Merci de vous être inscrit. Voici votre code de validation :</p>
+      <h2>Réinitialisation 🔐</h2>
+      <p>Voici votre code de réinitialisation de mot de passe :</p>
       <div class="code-box">
         <div class="code">{{ $code }}</div>
       </div>
-      <p>Entrez ce code dans l'application pour activer votre compte.</p>
-      <p style="font-size: 13px; color: #999;">Ce code est valable <strong>24 heures</strong>.<br>Si vous n'avez pas créé de compte, ignorez cet email.</p>
+      <p>Entrez ce code dans l'application pour choisir un nouveau mot de passe.</p>
+      <p style="font-size: 13px; color: #999;">Ce code expire dans <strong>60 minutes</strong>.<br>Si vous n'avez pas fait cette demande, ignorez cet email.</p>
     </div>
     <div class="footer">© {{ date('Y') }} RED PRODUCT — Tous droits réservés</div>
   </div>
