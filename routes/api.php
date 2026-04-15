@@ -3,8 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HotelController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Mail; // ✅ Ajouter cet import
 
-// Ajoute cette ligne en haut, avant toutes les autres routes
 Route::options('{any}', function() {
     return response()->json([], 200);
 })->where('any', '.*');
@@ -23,11 +23,10 @@ Route::get('/activate/{token}', [AuthController::class, 'activate']);
 Route::post('/forgot-password', [AuthController::class, 'sendResetLink']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// Routes pour gérer les hôtels
 Route::get('/hotels', [HotelController::class, 'index']);
 Route::post('/hotels', [HotelController::class, 'store']);
 
-
+// ✅ Route test mail
 Route::get('/test-mail', function () {
     try {
         Mail::raw('Test email RED PRODUCT', function($m) {
