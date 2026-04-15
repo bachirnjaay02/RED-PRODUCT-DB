@@ -5,9 +5,7 @@ use App\Http\Controllers\HotelController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Mail; // ✅ Ajouter cet import
 
-Route::options('{any}', function() {
-    return response()->json([], 200);
-})->where('any', '.*');
+
 
 Route::get('/health', function () {
     return response()->json([
@@ -38,3 +36,7 @@ Route::get('/test-mail', function () {
         return response()->json(['error' => $e->getMessage()]);
     }
 });
+
+Route::options('{any}', function() {
+    return response()->json([], 200);
+})->where('any', '.*');
