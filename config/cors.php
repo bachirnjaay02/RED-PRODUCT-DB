@@ -5,7 +5,6 @@ return [
     'allowed_methods' => ['*'],
     'allowed_origins' => [
         'https://red-product-front-mzvk.vercel.app',
-        'https://red-product-front-mzvk-dh1z0emlw-bachirnjaay02s-projects.vercel.app',
     ],
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
