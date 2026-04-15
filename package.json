@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
+        "build": "react-scripts build",
         "dev": "vite"
     },
     "devDependencies": {
