@@ -14,8 +14,7 @@ class AuthController extends Controller
     // ✅ Méthode centrale pour envoyer un email via l'API Brevo
     private function sendBrevoEmail($toEmail, $toName, $subject, $htmlContent)
     {
-        $apiKey = env('BREVO_API_KEY');
-
+        $apiKey = config('services.brevo.key'); // Assurez-vous d'avoir cette clé dans config/services.php
         $response = Http::withHeaders([
             'api-key'      => $apiKey,
             'Content-Type' => 'application/json',
