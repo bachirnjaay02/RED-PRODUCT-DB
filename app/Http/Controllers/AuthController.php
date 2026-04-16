@@ -5,13 +5,99 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    // ✅ Méthode centrale pour envoyer un email via l'API Brevo
+    private function sendBrevoEmail($toEmail, $toName, $subject, $htmlContent)
+    {
+        $apiKey = env('BREVO_API_KEY');
+
+        $response = Http::withHeaders([
+            'api-key'      => $apiKey,
+            'Content-Type' => 'application/json',
+            'Accept'       => 'application/json',
+        ])->post('https://api.brevo.com/v3/smtp/email', [
+            'sender' => [
+                'name'  => env('MAIL_FROM_NAME', 'RED PRODUCT'),
+                'email' => env('MAIL_FROM_ADDRESS', 'bachirndiaye233@gmail.com'),
+            ],
+            'to' => [[
+                'email' => $toEmail,
+                'name'  => $toName,
+            ]],
+            'subject'     => $subject,
+            'htmlContent' => $htmlContent,
+        ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Brevo API error: ' . $response->body());
+        }
+
+        return $response->json();
+    }
+
+    // ✅ Template email activation
+    private function getActivationEmailHtml($name, $code)
+    {
+        return '
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body style="font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0;">
+          <div style="max-width: 500px; margin: 40px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 15px rgba(0,0,0,0.1);">
+            <div style="background: #1a1a1a; padding: 30px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 22px; letter-spacing: 3px;">RED PRODUCT</h1>
+            </div>
+            <div style="padding: 40px 30px; text-align: center;">
+              <h2 style="color: #1a1a1a;">Bonjour ' . $name . ' 👋</h2>
+              <p style="color: #555; line-height: 1.6;">Merci de vous être inscrit. Voici votre code de validation :</p>
+              <div style="display: inline-block; margin: 25px auto; padding: 18px 40px; background: #f8f8f8; border: 2px dashed #1a1a1a; border-radius: 10px;">
+                <div style="font-size: 42px; font-weight: bold; color: #1a1a1a; letter-spacing: 10px;">' . $code . '</div>
+              </div>
+              <p style="color: #555;">Entrez ce code dans l\'application pour activer votre compte.</p>
+              <p style="font-size: 13px; color: #999;">Ce code est valable <strong>24 heures</strong>.<br>Si vous n\'avez pas créé de compte, ignorez cet email.</p>
+            </div>
+            <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 12px; color: #999;">
+              © ' . date('Y') . ' RED PRODUCT — Tous droits réservés
+            </div>
+          </div>
+        </body>
+        </html>';
+    }
+
+    // ✅ Template email reset password
+    private function getResetEmailHtml($name, $code)
+    {
+        return '
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body style="font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0;">
+          <div style="max-width: 500px; margin: 40px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 15px rgba(0,0,0,0.1);">
+            <div style="background: #1a1a1a; padding: 30px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 22px; letter-spacing: 3px;">RED PRODUCT</h1>
+            </div>
+            <div style="padding: 40px 30px; text-align: center;">
+              <h2 style="color: #1a1a1a;">Réinitialisation 🔐</h2>
+              <p style="color: #555; line-height: 1.6;">Voici votre code de réinitialisation de mot de passe :</p>
+              <div style="display: inline-block; margin: 25px auto; padding: 18px 40px; background: #fff3f3; border: 2px dashed #c0392b; border-radius: 10px;">
+                <div style="font-size: 42px; font-weight: bold; color: #c0392b; letter-spacing: 10px;">' . $code . '</div>
+              </div>
+              <p style="color: #555;">Entrez ce code dans l\'application pour choisir un nouveau mot de passe.</p>
+              <p style="font-size: 13px; color: #999;">Ce code expire dans <strong>60 minutes</strong>.<br>Si vous n\'avez pas fait cette demande, ignorez cet email.</p>
+            </div>
+            <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 12px; color: #999;">
+              © ' . date('Y') . ' RED PRODUCT — Tous droits réservés
+            </div>
+          </div>
+        </body>
+        </html>';
+    }
+
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -31,7 +117,6 @@ class AuthController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        // ✅ Générer un code à 6 chiffres
         $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         $user = User::create([
@@ -43,13 +128,12 @@ class AuthController extends Controller
         ]);
 
         try {
-            Mail::send('emails.activation', [
-                'code' => $code,
-                'name' => $user->name
-            ], function ($message) use ($user) {
-                $message->to($user->email);
-                $message->subject('Votre code de validation - RED PRODUCT');
-            });
+            $this->sendBrevoEmail(
+                $user->email,
+                $user->name,
+                'Votre code de validation - RED PRODUCT',
+                $this->getActivationEmailHtml($user->name, $code)
+            );
         } catch (\Exception $e) {
             return response()->json([
                 'message'      => 'Inscription réussie mais email non envoyé. Contactez le support.',
@@ -64,7 +148,6 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // ✅ Nouvelle méthode — vérification du code
     public function verifyCode(Request $request)
     {
         $request->validate([
@@ -80,11 +163,13 @@ class AuthController extends Controller
             return response()->json(['message' => 'Code invalide ou expiré.'], 400);
         }
 
-        $user->is_active = true;
+        $user->is_active        = true;
         $user->activation_token = null;
         $user->save();
 
-        return response()->json(['message' => 'Compte activé avec succès ! Vous pouvez maintenant vous connecter.']);
+        return response()->json([
+            'message' => 'Compte activé avec succès ! Vous pouvez maintenant vous connecter.'
+        ]);
     }
 
     public function login(Request $request)
@@ -102,8 +187,8 @@ class AuthController extends Controller
 
         if (!$user->is_active) {
             return response()->json([
-                'message' => 'Votre compte n\'est pas encore activé. Vérifiez votre email.',
-                'email'   => $user->email,
+                'message'          => 'Votre compte n\'est pas encore activé. Vérifiez votre email.',
+                'email'            => $user->email,
                 'needs_activation' => true
             ], 403);
         }
@@ -141,12 +226,12 @@ class AuthController extends Controller
         );
 
         try {
-            Mail::send('emails.reset', [
-                'code' => $code,
-                'name' => $user->name
-            ], function ($m) use ($user) {
-                $m->to($user->email)->subject('Code de réinitialisation - RED PRODUCT');
-            });
+            $this->sendBrevoEmail(
+                $user->email,
+                $user->name,
+                'Code de réinitialisation - RED PRODUCT',
+                $this->getResetEmailHtml($user->name, $code)
+            );
         } catch (\Exception $e) {
             return response()->json([
                 'message'      => 'Email non envoyé.',
@@ -154,7 +239,9 @@ class AuthController extends Controller
             ], 500);
         }
 
-        return response()->json(['message' => 'Code de réinitialisation envoyé par email !']);
+        return response()->json([
+            'message' => 'Code de réinitialisation envoyé par email !'
+        ]);
     }
 
     public function resetPassword(Request $request)
