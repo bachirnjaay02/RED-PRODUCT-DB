@@ -14,7 +14,7 @@ class HotelController extends Controller
             // Pour les hôtels uploadés via formulaire, l'image contient déjà "hotels/"
             $imagePath = $hotel->image;
             if (!str_contains($imagePath, 'hotels/')) {
-                $imagePath = 'hotels/' . $imagePath;
+                $imagePath = 'hotels/' . $imagePath;       // Adapter pour les hôtels importés depuis le fichier JSON
             }
             
             return [
@@ -22,7 +22,7 @@ class HotelController extends Controller
                 'name' => $hotel->name,
                 'location' => $hotel->address, // Adapter pour le frontend
                 'price' => $hotel->price . ' ' . $hotel->currency,
-                'image' => asset('storage/' . $imagePath),
+                'image' => asset('storage/' . $imagePath), // Génère une URL complète pour l'image
                 'email' => $hotel->email,
                 'phone' => $hotel->phone,
             ];
