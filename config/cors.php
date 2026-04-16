@@ -9,6 +9,6 @@ return [
     'allowed_origins_patterns' => ['#^https://red-product-.*\.vercel\.app$#'],
     'allowed_headers' => ['*'],
     'exposed_headers' => [],
-    'max_age' => 86400,
-    'supports_credentials' => false,
+    'max_age' => 0,
+    'supports_credentials' => true,
 ];
