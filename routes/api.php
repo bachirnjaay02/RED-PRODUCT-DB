@@ -37,6 +37,19 @@ Route::get('/test-mail', function () {
         return response()->json(['error' => $e->getMessage()]);
     }
 });
+// route mail avec brevo
+Route::get('/test-mail-brevo', function () {
+    try {
+        Mail::raw('Test email RED PRODUCT via Brevo', function($m) {
+            $m->to('bachirndiaye233@gmail.com')
+              ->subject('Test mail Laravel via Brevo');
+        });
+        return response()->json(['message' => 'Mail envoyé !']);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()]);
+    }
+});
+
 
 Route::options('{any}', function() {
     return response()->json([], 200);
