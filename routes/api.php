@@ -18,7 +18,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/Login', [AuthController::class, 'Login']);
 Route::post('/logout', [AuthController::class, 'logout']);
 Route::get('/activate/{token}', [AuthController::class, 'activate']);
-Route::post('/forgotpassword', [AuthController::class, 'sendResetLink']);
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 Route::get('/hotels', [HotelController::class, 'index']);
