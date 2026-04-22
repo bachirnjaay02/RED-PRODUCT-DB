@@ -15,7 +15,7 @@ Route::get('/health', function () {
 });
 
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/Login', [AuthController::class, 'Login']);
+Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
 Route::get('/activate/{token}', [AuthController::class, 'activate']);
 Route::post('/forgot-password', [AuthController::class, 'sendResetLink']);
